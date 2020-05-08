@@ -21,11 +21,14 @@ jobs:
       - run: git fetch --tags
       - name: Build
         run: |
-          echo "$(git describe --tags)" | tee test.txt
+          git describe --tags | tee test.txt
+          git log -n10 --short
+          git describe --abbrev=0 --tags
+          git describe --abbrev=0 --tags HEAD^
       - name: Prepare release description
         id: prepare_release_description
         run: |
-          DESCRIPTION="$(git log --no-merges "$(git describe --abbrev=0 --tags)..." --pretty='%h %s - %aN' --grep 'CI SKIP' --invert-grep)"
+          DESCRIPTION="$(git log --no-merges "$(git describe --abbrev=0 --tags HEAD^)..." --pretty='%h %s - %aN' --grep 'CI SKIP' --invert-grep)"
           # See https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
           DESCRIPTION="${DESCRIPTION//'%'/'%25'}"
           DESCRIPTION="${DESCRIPTION//$'\n'/'%0A'}"
