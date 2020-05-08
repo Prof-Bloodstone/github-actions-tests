@@ -22,7 +22,7 @@ jobs:
       - name: Build
         run: |
           git describe --tags | tee test.txt
-          git log -n10 --short
+          git log -n10 --oneline
           git describe --abbrev=0 --tags
           git describe --abbrev=0 --tags HEAD^
       - name: Prepare release description
