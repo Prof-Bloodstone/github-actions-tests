@@ -1,0 +1,56 @@
+# This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java#publishing-using-gradle
+
+name: Release
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 30
+      - run: git fetch --tags
+      - name: Build
+        run: |
+          echo "$(git describe --tags)" | tee test.txt
+      - name: Prepare release description
+        id: prepare_release_description
+        run: |
+          DESCRIPTION="$(git log --no-merges "$(git describe --abbrev=0 --tags)..." --pretty='%h %s - %aN' --grep 'CI SKIP' --invert-grep)"
+          # See https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
+          DESCRIPTION="${DESCRIPTION//'%'/'%25'}"
+          DESCRIPTION="${DESCRIPTION//$'\n'/'%0A'}"
+          DESCRIPTION="${DESCRIPTION//$'\r'/'%0D'}"
+          printf 'DESCRIPTION:\n%s\n' "${DESCRIPTION}"
+          printf '::set-output name=DESCRIPTION::%s' "${DESCRIPTION}"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: "${{ steps.prepare_release_description.outputs.description }}"
+          draft: false
+          prerelease: false
+      - name: Upload Release
+        id: upload_release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: '${{ steps.create_release.outputs.upload_url }}'
+          asset_path: 'test.txt'
+          asset_name: 'test.txt'
+          asset_content_type: 'text/plain'
+
