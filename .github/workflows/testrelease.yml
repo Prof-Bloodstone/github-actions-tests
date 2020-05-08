@@ -27,13 +27,21 @@ jobs:
           git describe --abbrev=0 --tags HEAD^
       - name: Prepare release description
         id: prepare_release_description
+        shell: bash
         run: |
-          DESCRIPTION="$(git log --no-merges "$(git describe --abbrev=0 --tags HEAD^)..." --pretty='%h %s - %aN' --grep 'CI SKIP' --invert-grep)"
+          PREV_TAG="$(git describe --abbrev=0 --tags HEAD^ --match 'v*')"
+          GIT_ARGS=(
+            "${PREV_TAG}..." # Get all commits since last tag ( release )
+            --no-merges # Ignore merge commits
+            --grep 'CI SKIP' --invert-grep # Ignore CI SKIP commits
+            --pretty='%h %s - %aN' # <short hash> <commit title> - <author name>
+            )
+          DESCRIPTION="$(git log "${GIT_ARGS[@]}")"
+          printf 'DESCRIPTION:\n%s\n' "${DESCRIPTION}"
           # See https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
           DESCRIPTION="${DESCRIPTION//'%'/'%25'}"
           DESCRIPTION="${DESCRIPTION//$'\n'/'%0A'}"
           DESCRIPTION="${DESCRIPTION//$'\r'/'%0D'}"
-          printf 'DESCRIPTION:\n%s\n' "${DESCRIPTION}"
           printf '::set-output name=DESCRIPTION::%s' "${DESCRIPTION}"
       - name: Create Release
         id: create_release
